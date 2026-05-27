@@ -1,7 +1,7 @@
 import React, { usestate } from 'react';
 
-export const productForm = () => {
+export const ProductForm = () => {
   return (
-    <div>productForm</div>
+    <div>ProductForm</div>
   )
 }

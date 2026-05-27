@@ -1,6 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
-import { ProductForm } from './componentes/productForm';
+import ProductForm from './components/ProductForm';
 
 function App() {
   return (
