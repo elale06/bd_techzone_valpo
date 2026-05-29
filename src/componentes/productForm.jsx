@@ -4,15 +4,26 @@ function ProductForm() {
   const [nombre, setNombre] = useState('');
   const [precio, setPrecio] = useState('');
   const [categoria, setCategoria] = useState('');
+  const [descripcion, setDescripcion] = useState(''); 
+  const [stock, setStock] = useState(''); 
   const [imagen, setImagen] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
-  
+
   const [productos, setProductos] = useState([]);
 
   const handleImageChange = (e) => {
     const archivo = e.target.files[0];
     if (archivo) {
+      const tamanoMaximo = 2 * 1024 * 1024; 
+      if (archivo.size > tamanoMaximo) {
+        setError('Error: La imagen supera el tamaño máximo permitido de 2MB.');
+        setImagen(null);
+        setPreview(null);
+        return;
+      }
+
+      setError('');
       setImagen(archivo);
       setPreview(URL.createObjectURL(archivo));
     }
@@ -21,13 +32,18 @@ function ProductForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!nombre.trim() || !precio || !categoria || !imagen) {
-      setError('Error: Todos los campos son obligatorios.');
+    if (!nombre.trim() || !precio || !categoria || !descripcion.trim() || !stock || !imagen) {
+      setError('Error: Todos los campos del formulario son estrictamente obligatorios.');
       return;
     }
 
     if (Number(precio) <= 0) {
-      setError('Error: El precio debe ser mayor a cero.');
+      setError('Error: El precio debe ser un número mayor a cero.');
+      return;
+    }
+
+    if (Number(stock) < 0) {
+      setError('Error: El stock disponible no puede ser un valor negativo.');
       return;
     }
 
@@ -38,27 +54,36 @@ function ProductForm() {
       nombre,
       precio,
       categoria,
+      descripcion,
+      stock,
       preview
     };
-    
+
     setProductos([...productos, nuevoProducto]);
 
     setNombre('');
     setPrecio('');
     setCategoria('');
+    setDescripcion('');
+    setStock('');
     setImagen(null);
     setPreview(null);
   };
 
+  const handleEliminar = (id) => {
+    const productosFiltrados = productos.filter(prod => prod.id !== id);
+    setProductos(productosFiltrados);
+  };
+
   return (
     <div className="form-container">
-      <h2>Registrar Nuevo Producto</h2>
+      <h2>TechZone Store - Registro de Productos</h2>
       
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="error-message">{error}</p>}
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Nombre:</label>
+          <label>Nombre del Producto:</label>
           <input 
             type="text" 
             value={nombre} 
@@ -67,7 +92,7 @@ function ProductForm() {
         </div>
 
         <div>
-          <label>Precio:</label>
+          <label>Precio ($):</label>
           <input 
             type="number" 
             value={precio} 
@@ -86,7 +111,25 @@ function ProductForm() {
         </div>
 
         <div>
-          <label>Imagen del Producto:</label>
+          <label>Descripción del Producto:</label>
+          <textarea 
+            value={descripcion} 
+            onChange={(e) => setDescripcion(e.target.value)}
+            rows="3"
+          />
+        </div>
+
+        <div>
+          <label>Stock Inicial:</label>
+          <input 
+            type="number" 
+            value={stock} 
+            onChange={(e) => setStock(e.target.value)} 
+          />
+        </div>
+
+        <div>
+          <label>Imagen (Máx. 2MB):</label>
           <input 
             type="file" 
             accept="image/*" 
@@ -95,9 +138,9 @@ function ProductForm() {
         </div>
 
         {preview && (
-          <div>
-            <p>Vista previa:</p>
-            <img src={preview} alt="Vista previa" width="150" />
+          <div className="preview-container">
+            <p>Vista previa de selección:</p>
+            <img src={preview} alt="Vista previa" width="120" />
           </div>
         )}
 
@@ -106,14 +149,25 @@ function ProductForm() {
 
       <hr />
 
-      <h3>Productos Registrados</h3>
+      <h3>Productos Registrados (Total: {productos.length})</h3>
+      
       <div className="productos-list">
         {productos.map((prod) => (
           <div key={prod.id} className="producto-card">
+            <span className="categoria-tag">{prod.categoria}</span>
             <h4>{prod.nombre}</h4>
-            <p>Categoría: {prod.categoria}</p>
-            <p>Precio: ${prod.precio}</p>
-            <img src={prod.preview} alt={prod.nombre} width="100" />
+            <p className="descripcion-text">{prod.descripcion}</p>
+            <div className="card-meta">
+              <p><strong>Precio:</strong> ${prod.precio}</p>
+              <p><strong>Stock:</strong> {prod.stock} uds.</p>
+            </div>
+            <img src={prod.preview} alt={prod.nombre} />
+            <button 
+              onClick={() => handleEliminar(prod.id)} 
+              className="btn-eliminar"
+            >
+              Eliminar Producto
+            </button>
           </div>
         ))}
       </div>
