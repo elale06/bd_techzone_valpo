@@ -4,8 +4,8 @@ function ProductForm() {
   const [nombre, setNombre] = useState('');
   const [precio, setPrecio] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [descripcion, setDescripcion] = useState(''); 
-  const [stock, setStock] = useState(''); 
+  const [descripcion, setDescripcion] = useState('');
+  const [stock, setStock] = useState('');
   const [imagen, setImagen] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
@@ -15,7 +15,7 @@ function ProductForm() {
   const handleImageChange = (e) => {
     const archivo = e.target.files[0];
     if (archivo) {
-      const tamanoMaximo = 2 * 1024 * 1024; 
+      const tamanoMaximo = 2 * 1024 * 1024;
       if (archivo.size > tamanoMaximo) {
         setError('Error: La imagen supera el tamaño máximo permitido de 2MB.');
         setImagen(null);
@@ -37,13 +37,13 @@ function ProductForm() {
       return;
     }
 
-    if (Number(precio) <= 0) {
-      setError('Error: El precio debe ser un número mayor a cero.');
+    if (Number(precio) <= 0 || !Number.isInteger(Number(precio))) {
+      setError('Error: El precio debe ser un número entero mayor a cero.');
       return;
     }
 
-    if (Number(stock) < 0) {
-      setError('Error: El stock disponible no puede ser un valor negativo.');
+    if (Number(stock) < 0 || !Number.isInteger(Number(stock))) {
+      setError('Error: El stock disponible debe ser un número entero mayor o igual a cero.');
       return;
     }
 
@@ -78,26 +78,54 @@ function ProductForm() {
   return (
     <div className="form-container">
       <h2>TechZone Store - Registro de Productos</h2>
-      
+
       {error && <p className="error-message">{error}</p>}
 
       <form onSubmit={handleSubmit}>
         <div>
           <label>Nombre del Producto:</label>
-          <input 
-            type="text" 
-            value={nombre} 
+          <input
+            type="text"
+            value={nombre}
             onChange={(e) => setNombre(e.target.value)}
+            placeholder="Ej: Notebook Gamer Pro"
           />
         </div>
 
-        <div>
-          <label>Precio ($):</label>
-          <input 
-            type="number" 
-            value={precio} 
-            onChange={(e) => setPrecio(e.target.value)} 
-          />
+        <div className="form-row">
+          <div>
+            <label>Precio ($):</label>
+            <input
+              type="number"
+              value={precio}
+              onChange={(e) => setPrecio(e.target.value)}
+              onKeyDown={(e) => {
+                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+              placeholder="2699990"
+              step="1"
+              min="1"
+            />
+          </div>
+
+          <div>
+            <label>Stock Inicial:</label>
+            <input
+              type="number"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              onKeyDown={(e) => {
+                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+              placeholder="5"
+              step="1"
+              min="0"
+            />
+          </div>
         </div>
 
         <div>
@@ -112,28 +140,20 @@ function ProductForm() {
 
         <div>
           <label>Descripción del Producto:</label>
-          <textarea 
-            value={descripcion} 
+          <textarea
+            value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             rows="3"
-          />
-        </div>
-
-        <div>
-          <label>Stock Inicial:</label>
-          <input 
-            type="number" 
-            value={stock} 
-            onChange={(e) => setStock(e.target.value)} 
+            placeholder="Escribe los detalles y especificaciones del producto..."
           />
         </div>
 
         <div>
           <label>Imagen (Máx. 2MB):</label>
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleImageChange} 
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
           />
         </div>
 
@@ -150,27 +170,33 @@ function ProductForm() {
       <hr />
 
       <h3>Productos Registrados (Total: {productos.length})</h3>
-      
-      <div className="productos-list">
-        {productos.map((prod) => (
-          <div key={prod.id} className="producto-card">
-            <span className="categoria-tag">{prod.categoria}</span>
-            <h4>{prod.nombre}</h4>
-            <p className="descripcion-text">{prod.descripcion}</p>
-            <div className="card-meta">
-              <p><strong>Precio:</strong> ${prod.precio}</p>
-              <p><strong>Stock:</strong> {prod.stock} uds.</p>
+
+      {productos.length === 0 ? (
+        <div className="empty-state">
+          Aún no hay productos registrados. Agrega el primero usando el formulario superior.
+        </div>
+      ) : (
+        <div className="productos-list">
+          {productos.map((prod) => (
+            <div key={prod.id} className="producto-card">
+              <span className="categoria-tag">{prod.categoria}</span>
+              <h4>{prod.nombre}</h4>
+              <p className="descripcion-text">{prod.descripcion}</p>
+              <div className="card-meta">
+                <p><strong>Precio:</strong> ${prod.precio}</p>
+                <p><strong>Stock:</strong> {prod.stock} uds.</p>
+              </div>
+              <img src={prod.preview} alt={prod.nombre} />
+              <button
+                onClick={() => handleEliminar(prod.id)}
+                className="btn-eliminar"
+              >
+                Eliminar Producto
+              </button>
             </div>
-            <img src={prod.preview} alt={prod.nombre} />
-            <button 
-              onClick={() => handleEliminar(prod.id)} 
-              className="btn-eliminar"
-            >
-              Eliminar Producto
-            </button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
