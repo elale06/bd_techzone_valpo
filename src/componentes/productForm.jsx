@@ -12,6 +12,10 @@ function ProductForm() {
 
   const [productos, setProductos] = useState([]);
 
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
+  const [notificacion, setNotificacion] = useState('');
+  const [ocultandoNotificacion, setOcultandoNotificacion] = useState(false);
+
   const handleImageChange = (e) => {
     const archivo = e.target.files[0];
     if (archivo) {
@@ -71,8 +75,27 @@ function ProductForm() {
   };
 
   const handleEliminar = (id) => {
-    const productosFiltrados = productos.filter(prod => prod.id !== id);
+    setProductoAEliminar(id);
+  };
+
+// 2. Si el usuario confirma, borramos el producto y mostramos notificación con fade out
+  const confirmarEliminacion = () => {
+    const productosFiltrados = productos.filter(prod => prod.id !== productoAEliminar);
     setProductos(productosFiltrados);
+    setProductoAEliminar(null); 
+    setNotificacion('✅ Producto eliminado con éxito');
+    setOcultandoNotificacion(false);
+    setTimeout(() => {
+      setOcultandoNotificacion(true);
+      setTimeout(() => {
+        setNotificacion('');
+        setOcultandoNotificacion(false);
+      }, 400); 
+    }, 3000);
+  };
+
+  const cancelarEliminacion = () => {
+    setProductoAEliminar(null);
   };
 
   return (
@@ -195,6 +218,24 @@ function ProductForm() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {productoAEliminar && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h4>Confirmar Eliminación</h4>
+            <p>¿Estás seguro de que deseas eliminar este producto de la tienda? Esta acción no se puede deshacer.</p>
+            <div className="modal-botones">
+              <button onClick={cancelarEliminacion} className="btn-cancelar">Cancelar</button>
+              <button onClick={confirmarEliminacion} className="btn-confirmar">Sí, eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {notificacion && (
+        <div className={`toast-notificacion ${ocultandoNotificacion ? 'fade-out' : ''}`}>
+          {notificacion}
         </div>
       )}
     </div>

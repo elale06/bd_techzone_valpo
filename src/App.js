@@ -4,7 +4,7 @@ import ProductForm from './componentes/ProductForm';
 function App() {
   return (
     <div>
-      <ProductForm />
+      <ProductForm/>
     </div>
   );
 }
