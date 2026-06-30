@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 function ProductForm() {
   const [nombre, setNombre] = useState('');
@@ -11,10 +12,27 @@ function ProductForm() {
   const [error, setError] = useState('');
 
   const [productos, setProductos] = useState([]);
-
   const [productoAEliminar, setProductoAEliminar] = useState(null);
   const [notificacion, setNotificacion] = useState('');
   const [ocultandoNotificacion, setOcultandoNotificacion] = useState(false);
+
+  // ==========================================
+  // NUEVO: Cargar productos desde MongoDB (Python)
+  // ==========================================
+  const cargarProductos = async () => {
+    try {
+      const respuesta = await axios.get('http://localhost:5000/api/productos');
+      setProductos(respuesta.data);
+    } catch (error) {
+      console.error("Error al cargar productos:", error);
+      setError("No se pudo conectar con la base de datos.");
+    }
+  };
+
+  // Se ejecuta una sola vez al cargar la página
+  useEffect(() => {
+    cargarProductos();
+  }, []);
 
   const handleImageChange = (e) => {
     const archivo = e.target.files[0];
@@ -26,18 +44,17 @@ function ProductForm() {
         setPreview(null);
         return;
       }
-
       setError('');
       setImagen(archivo);
       setPreview(URL.createObjectURL(archivo));
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!nombre.trim() || !precio || !categoria || !descripcion.trim() || !stock || !imagen) {
-      setError('Error: Todos los campos del formulario son estrictamente obligatorios.');
+    if (!nombre.trim() || !precio || !categoria || !descripcion.trim() || !stock) {
+      setError('Error: Todos los campos de texto son obligatorios.');
       return;
     }
 
@@ -47,43 +64,61 @@ function ProductForm() {
     }
 
     if (Number(stock) < 0 || !Number.isInteger(Number(stock))) {
-      setError('Error: El stock disponible debe ser un número entero mayor o igual a cero.');
+      setError('Error: El stock debe ser un número entero mayor o igual a cero.');
       return;
     }
 
     setError('');
 
-    const nuevoProducto = {
-      id: Date.now(),
-      nombre,
-      precio,
-      categoria,
-      descripcion,
-      stock,
-      preview
-    };
+    // ==========================================
+    // NUEVO: Enviar el producto al Backend (POST)
+    // ==========================================
+    try {
+      const payload = {
+        nombre: nombre,
+        precio: Number(precio),
+        stock: Number(stock),
+        categoria: categoria,
+        descripcion: descripcion
+      };
 
-    setProductos([...productos, nuevoProducto]);
-
-    setNombre('');
-    setPrecio('');
-    setCategoria('');
-    setDescripcion('');
-    setStock('');
-    setImagen(null);
-    setPreview(null);
+      await axios.post('http://localhost:5000/api/productos', payload);
+      
+      // Limpiar formulario
+      setNombre('');
+      setPrecio('');
+      setCategoria('');
+      setDescripcion('');
+      setStock('');
+      setImagen(null);
+      setPreview(null);
+      
+      // Mostrar éxito y recargar lista desde la BD
+      setNotificacion('✅ Producto guardado en MongoDB');
+      setOcultandoNotificacion(false);
+      setTimeout(() => {
+        setOcultandoNotificacion(true);
+        setTimeout(() => setNotificacion(''), 400);
+      }, 3000);
+      
+      cargarProductos(); // Refrescar la tabla consultando a la API
+      
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      setError("Hubo un error al guardar el producto en la base de datos.");
+    }
   };
 
   const handleEliminar = (id) => {
     setProductoAEliminar(id);
   };
 
-// 2. Si el usuario confirma, borramos el producto y mostramos notificación con fade out
+  // Por ahora la eliminación sigue siendo local (para borrar de MongoDB necesitas agregar la ruta DELETE en Python)
   const confirmarEliminacion = () => {
-    const productosFiltrados = productos.filter(prod => prod.id !== productoAEliminar);
+    const productosFiltrados = productos.filter(prod => prod._id !== productoAEliminar);
     setProductos(productosFiltrados);
     setProductoAEliminar(null); 
-    setNotificacion('✅ Producto eliminado con éxito');
+    setNotificacion('✅ Producto ocultado (falta ruta DELETE en API)');
     setOcultandoNotificacion(false);
     setTimeout(() => {
       setOcultandoNotificacion(true);
@@ -101,56 +136,23 @@ function ProductForm() {
   return (
     <div className="form-container">
       <h2>TechZone Store - Registro de Productos</h2>
-
       {error && <p className="error-message">{error}</p>}
 
       <form onSubmit={handleSubmit}>
         <div>
           <label>Nombre del Producto:</label>
-          <input
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Ej: Notebook Gamer Pro"
-          />
+          <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Notebook Gamer Pro" />
         </div>
-
         <div className="form-row">
           <div>
             <label>Precio ($):</label>
-            <input
-              type="number"
-              value={precio}
-              onChange={(e) => setPrecio(e.target.value)}
-              onKeyDown={(e) => {
-                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) {
-                  e.preventDefault();
-                }
-              }}
-              placeholder="2699990"
-              step="1"
-              min="1"
-            />
+            <input type="number" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="2699990" />
           </div>
-
           <div>
             <label>Stock Inicial:</label>
-            <input
-              type="number"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              onKeyDown={(e) => {
-                if (['.', ',', 'e', 'E', '+', '-'].includes(e.key)) {
-                  e.preventDefault();
-                }
-              }}
-              placeholder="5"
-              step="1"
-              min="0"
-            />
+            <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="5" />
           </div>
         </div>
-
         <div>
           <label>Categoría:</label>
           <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
@@ -160,62 +162,40 @@ function ProductForm() {
             <option value="Accesorios">Accesorios</option>
           </select>
         </div>
-
         <div>
           <label>Descripción del Producto:</label>
-          <textarea
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            rows="3"
-            placeholder="Escribe los detalles y especificaciones del producto..."
-          />
+          <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} rows="3" placeholder="Detalles..." />
         </div>
-
         <div>
           <label>Imagen (Máx. 2MB):</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-          />
+          <input type="file" accept="image/*" onChange={handleImageChange} />
         </div>
-
         {preview && (
           <div className="preview-container">
-            <p>Vista previa de selección:</p>
+            <p>Vista previa:</p>
             <img src={preview} alt="Vista previa" width="120" />
           </div>
         )}
-
         <button type="submit">Guardar Producto</button>
       </form>
 
       <hr />
-
-      <h3>Productos Registrados (Total: {productos.length})</h3>
+      <h3>Productos en Base de Datos (Total: {productos.length})</h3>
 
       {productos.length === 0 ? (
-        <div className="empty-state">
-          Aún no hay productos registrados. Agrega el primero usando el formulario superior.
-        </div>
+        <div className="empty-state">No hay productos en MongoDB.</div>
       ) : (
         <div className="productos-list">
           {productos.map((prod) => (
-            <div key={prod.id} className="producto-card">
-              <span className="categoria-tag">{prod.categoria}</span>
+            <div key={prod._id} className="producto-card">
+              <span className="categoria-tag">{prod.categoria || 'Sin categoría'}</span>
               <h4>{prod.nombre}</h4>
               <p className="descripcion-text">{prod.descripcion}</p>
               <div className="card-meta">
                 <p><strong>Precio:</strong> ${prod.precio}</p>
                 <p><strong>Stock:</strong> {prod.stock} uds.</p>
               </div>
-              <img src={prod.preview} alt={prod.nombre} />
-              <button
-                onClick={() => handleEliminar(prod.id)}
-                className="btn-eliminar"
-              >
-                Eliminar Producto
-              </button>
+              <button onClick={() => handleEliminar(prod._id)} className="btn-eliminar">Eliminar Producto</button>
             </div>
           ))}
         </div>
@@ -225,7 +205,7 @@ function ProductForm() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h4>Confirmar Eliminación</h4>
-            <p>¿Estás seguro de que deseas eliminar este producto de la tienda? Esta acción no se puede deshacer.</p>
+            <p>¿Estás seguro de que deseas eliminar este producto?</p>
             <div className="modal-botones">
               <button onClick={cancelarEliminacion} className="btn-cancelar">Cancelar</button>
               <button onClick={confirmarEliminacion} className="btn-confirmar">Sí, eliminar</button>
