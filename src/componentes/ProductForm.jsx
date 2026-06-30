@@ -50,6 +50,15 @@ function ProductForm() {
     }
   };
 
+  const convertirABase64 = (archivo) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(archivo);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -58,54 +67,39 @@ function ProductForm() {
       return;
     }
 
-    if (Number(precio) <= 0 || !Number.isInteger(Number(precio))) {
-      setError('Error: El precio debe ser un número entero mayor a cero.');
-      return;
-    }
-
-    if (Number(stock) < 0 || !Number.isInteger(Number(stock))) {
-      setError('Error: El stock debe ser un número entero mayor o igual a cero.');
-      return;
-    }
-
-    setError('');
-
-    // ==========================================
-    // NUEVO: Enviar el producto al Backend (POST)
-    // ==========================================
     try {
+      // Convertir la imagen a texto Base64 si existe
+      let imagenBase64 = null;
+      if (imagen) {
+        imagenBase64 = await convertirABase64(imagen);
+      }
+
       const payload = {
         nombre: nombre,
         precio: Number(precio),
         stock: Number(stock),
         categoria: categoria,
-        descripcion: descripcion
+        descripcion: descripcion,
+        imagen: imagenBase64 // Se envía la imagen como texto
       };
 
       await axios.post('http://localhost:5000/api/productos', payload);
-      
-      // Limpiar formulario
-      setNombre('');
-      setPrecio('');
-      setCategoria('');
-      setDescripcion('');
-      setStock('');
-      setImagen(null);
-      setPreview(null);
-      
-      // Mostrar éxito y recargar lista desde la BD
-      setNotificacion('✅ Producto guardado en MongoDB');
+
+      setNombre(''); setPrecio(''); setCategoria('');
+      setDescripcion(''); setStock(''); setImagen(null); setPreview(null);
+
+      setNotificacion('✅ Producto guardado con categoría e imagen');
       setOcultandoNotificacion(false);
       setTimeout(() => {
         setOcultandoNotificacion(true);
         setTimeout(() => setNotificacion(''), 400);
       }, 3000);
-      
-      cargarProductos(); // Refrescar la tabla consultando a la API
-      
+
+      cargarProductos();
+
     } catch (error) {
       console.error("Error al guardar:", error);
-      setError("Hubo un error al guardar el producto en la base de datos.");
+      setError("Hubo un error al guardar el producto.");
     }
   };
 
